@@ -1,12 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './App.css';
 import EquipeList from './components/EquipeList';
 import EquipeForm from './components/EquipeForm';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import HomePage from './pages/HomePage';
+import ClientsPage from './pages/ClientsPage';
+
 const API_URL = '/api/equipes';
 
-function App() {
+// ─── Équipes Page (extracted inline) ─────────────────────────────────────────
+function EquipesPage() {
   const [equipes, setEquipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,12 +20,10 @@ function App() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState(null);
 
-
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
-
 
   const fetchEquipes = useCallback(async () => {
     try {
@@ -48,15 +51,12 @@ function App() {
           ? Math.max(...equipes.map((e) => parseInt(e.id))) + 1
           : 1
       );
-
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: newId, ...formData }),
       });
-
       if (!res.ok) throw new Error('Erreur lors de l\'ajout');
-
       const result = await res.json();
       setEquipes(result.data);
       setShowForm(false);
@@ -66,7 +66,6 @@ function App() {
     }
   };
 
-  // Update equipe
   const handleUpdate = async (formData) => {
     try {
       const res = await fetch(`${API_URL}/${editingEquipe.id}`, {
@@ -74,27 +73,20 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       if (!res.ok) throw new Error('Erreur lors de la modification');
-
       const result = await res.json();
       setEquipes(result.data);
       setEditingEquipe(null);
-      showToast(`${formData.name} modifiée avec succès ! `);
+      showToast(`${formData.name} modifiée avec succès !`);
     } catch (err) {
       showToast(err.message, 'error');
     }
   };
 
-  // Delete equipe
   const handleDelete = async () => {
     try {
-      const res = await fetch(`${API_URL}/${deleteTarget.id}`, {
-        method: 'DELETE',
-      });
-
+      const res = await fetch(`${API_URL}/${deleteTarget.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Erreur lors de la suppression');
-
       const result = await res.json();
       setEquipes(result.data);
       setDeleteTarget(null);
@@ -104,15 +96,11 @@ function App() {
     }
   };
 
-  // Count unique countries
   const uniqueCountries = [...new Set(equipes.map((e) => e.country))].length;
 
   return (
-    <div className="page-wrapper" id="page-wrapper">
-      <Header />
-      <div className="app" id="app-container">
-      {/* Titre section */}
-      <header className="header" id="app-header">
+    <div className="app" id="app-container">
+      <header className="header" id="app-header-section">
         <h1>Gestion des Équipes</h1>
         <div className="stats-bar">
           <div className="stat-item">
@@ -126,19 +114,13 @@ function App() {
         </div>
       </header>
 
-      {/* Toolbar */}
       <div className="toolbar" id="toolbar">
         <h2>Liste des équipes</h2>
-        <button
-          className="btn-add"
-          onClick={() => setShowForm(true)}
-          id="btn-add-equipe"
-        >
+        <button className="btn-add" onClick={() => setShowForm(true)} id="btn-add-equipe">
           <span>➕</span> Ajouter une équipe
         </button>
       </div>
 
-      {/* Content */}
       {loading ? (
         <div className="loading" id="loading-state">
           <div className="spinner"></div>
@@ -161,35 +143,17 @@ function App() {
         />
       )}
 
-      {/* Add Form Modal */}
       {showForm && (
-        <EquipeForm
-          equipe={null}
-          onSubmit={handleAdd}
-          onClose={() => setShowForm(false)}
-        />
+        <EquipeForm equipe={null} onSubmit={handleAdd} onClose={() => setShowForm(false)} />
       )}
-
-      {/* Edit Form Modal */}
       {editingEquipe && (
-        <EquipeForm
-          equipe={editingEquipe}
-          onSubmit={handleUpdate}
-          onClose={() => setEditingEquipe(null)}
-        />
+        <EquipeForm equipe={editingEquipe} onSubmit={handleUpdate} onClose={() => setEditingEquipe(null)} />
       )}
 
-      {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)} id="delete-modal-overlay">
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="btn-close-modal"
-              onClick={() => setDeleteTarget(null)}
-              aria-label="Fermer"
-            >
-              ✕
-            </button>
+            <button className="btn-close-modal" onClick={() => setDeleteTarget(null)} aria-label="Fermer">✕</button>
             <h2>Confirmer la suppression</h2>
             <p className="modal-subtitle">Cette action est irréversible</p>
             <p className="confirm-text">
@@ -197,17 +161,8 @@ function App() {
               <span className="confirm-name">{deleteTarget.name}</span> ?
             </p>
             <div className="form-actions">
-              <button
-                className="btn-cancel"
-                onClick={() => setDeleteTarget(null)}
-              >
-                Annuler
-              </button>
-              <button
-                className="btn-confirm-delete"
-                onClick={handleDelete}
-                id="btn-confirm-delete"
-              >
+              <button className="btn-cancel" onClick={() => setDeleteTarget(null)}>Annuler</button>
+              <button className="btn-confirm-delete" onClick={handleDelete} id="btn-confirm-delete">
                 Supprimer
               </button>
             </div>
@@ -215,19 +170,31 @@ function App() {
         </div>
       )}
 
-      {/* Toast Notifications */}
       {toast && (
-        <div
-          className={`toast toast-${toast.type}`}
-          id="toast-notification"
-          role="alert"
-        >
+        <div className={`toast toast-${toast.type}`} id="toast-notification" role="alert">
           {toast.type === 'success' ? '✅' : '❌'} {toast.message}
         </div>
       )}
-      </div>
-      <Footer />
     </div>
+  );
+}
+
+// ─── Root App with Router ─────────────────────────────────────────────────────
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="page-wrapper" id="page-wrapper">
+        <Header />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/equipes" element={<EquipesPage />} />
+            <Route path="/clients" element={<ClientsPage />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </BrowserRouter>
   );
 }
 
